@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:note_app/screns/SplashScreen.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
+  import 'package:notyee/screns/SplashScreen.dart';
+import 'package:notyee/screns/app_pages.dart';
+import 'package:notyee/screns/app_routes.dart';
+import 'package:notyee/screns/notes_binding.dart';
 
-import 'model/NotesModel.dart';
 
-
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  Hive.registerAdapter(NoteAdapter());
-  await Hive.openBox<Note>('notes');
-  await Hive.openBox('favorites');
   runApp(NoteApp());
 }
 
 class NoteApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Note App',
       theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: SplashScreen(),
+      home: Splashscreen(),
       debugShowCheckedModeBanner: false,
+      initialBinding: NotesBinding(),
+      initialRoute: AppRoutes.splashScreen,
+      getPages: AppPages.routes,
+
     );
   }
 }

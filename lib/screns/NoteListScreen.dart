@@ -1,219 +1,261 @@
+
 import 'dart:io';
-import 'dart:ui';
-import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import '../model/NotesModel.dart';
-import 'NotesDetailsScreen.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+ import 'package:notyee/screns/controllers.dart';
+import '../model/note_model.dart';
 
-class NotesListScreen extends StatefulWidget {
-  @override
-  _NotesListScreenState createState() => _NotesListScreenState();
-}
-
-class _NotesListScreenState extends State<NotesListScreen> {
-  late Box<Note> notesBox;
-  late Box favoritesBox;
-
-  @override
-  void initState() {
-    super.initState();
-    notesBox = Hive.box<Note>('notes');
-    favoritesBox = Hive.box('favorites');
-  }
-
-  String formatNoteDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date).inDays;
-    if (difference == 0) {
-      return 'Today';
-    } else if (difference == 1) {
-      return 'Yesterday';
-    } else {
-      return DateFormat('dd/MM/yyyy').format(date);
-    }
-  }
-
-  String formatTime(DateTime date) {
-    return DateFormat('HH:mm').format(date);
-  }
+class Notelistscreen extends GetView<NotesController> {
+  const Notelistscreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text("My Notes"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Stack(
-        children: [
-          Positioned(
-            top: MediaQuery.of(context).size.height*0.75,
-            left: MediaQuery.of(context).size.width*0.00775,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Colors.purpleAccent, Colors.deepPurple],
-                ),
-              ),
-              child: Icon(Icons.edit, size: 100, color: Colors.white70),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.height*0.75,
-            left: MediaQuery.of(context).size.width*0.43,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  colors: [Colors.orange, Colors.deepOrangeAccent],
-                ),
-              ),
-              child: Icon(Icons.menu_book, size: 100, color: Colors.white70),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.height*0.64,
-            left: MediaQuery.of(context).size.width*0.25,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Colors.lightBlue, Colors.blueAccent],
-                ),
-              ),
-              child: Icon(Icons.note_alt, size: 80, color: Colors.white70),
-            ),
-          ),
+      backgroundColor: const Color(0xffF8F8FC),
 
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 2, sigmaY: 3),
-            child: Container(color: Colors.black.withOpacity(0.2)),
-          ),
-
-          ValueListenableBuilder(
-            valueListenable: notesBox.listenable(),
-            builder: (context, Box<Note> box, _) {
-              if (box.values.isEmpty) {
-                return Center(child: Text("No notes yet.", style: TextStyle(color: Colors.white, fontSize: 18)));
-              }
-              List<MapEntry<dynamic, Note>> notes = box.toMap().entries.toList();
-              notes.sort((a, b) => b.value.created.compareTo(a.value.created));
-
-              String? lastDateLabel;
-              return ListView.builder(
-                padding: EdgeInsets.only(top: kToolbarHeight + 16, bottom: 80),
-                itemCount: notes.length,
-                itemBuilder: (context, index) {
-                  final entry = notes[index];
-                  final note = entry.value;
-                  final noteDate = formatNoteDate(note.created);
-                  final showDateLabel = noteDate != lastDateLabel;
-                  lastDateLabel = noteDate;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (showDateLabel)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                          child: Text(
-                            noteDate,
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => NoteDetailsScreen(note: note),
-                          ),
-                        ),
-                        onLongPress: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: Text("Delete Note"),
-                              content: Text("Are you sure you want to delete this note?"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text("Cancel"),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    note.delete();
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text("Delete"),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        child: Card(
-                          margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          clipBehavior: Clip.antiAlias,
-                          child: Container(
-
-                            decoration: note.imagePath != null
-                                ? BoxDecoration(
-                              image: DecorationImage(
-                                image: FileImage(File(note.imagePath!)),
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                                : BoxDecoration(color: Colors.grey[300]),
-                            child: Container(
-                              color: Colors.black.withOpacity(0.4),
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      note.title,
-                                      style: TextStyle(color: Colors.white, fontSize: 16),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Text(
-                                    formatTime(note.created),
-                                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => NoteDetailsScreen()),
+        onPressed: controller.openNewNote,
+        backgroundColor: const Color(0xFF7C5CFF),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
+      ),
+
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+
+              /// Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Notyee',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xff0F172A),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              /// Search Field
+              TextField(
+                onChanged: (val) => controller.searchQuery.value = val,
+                decoration: InputDecoration(
+                  hintText: 'Search notes...',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              /// Notes List
+              Expanded(
+                child: Obx(() {
+                  if (controller.allNotes.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.note_alt_outlined,
+                            size: 90,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            "No Notes Yet",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            "Tap + to create your first note",
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final notes = controller.filteredNotes;
+                  if (notes.isEmpty) {
+                     return const Center(child: Text("No results found."));
+                  }
+
+                  final listItems = <Widget>[];
+                  String? lastLabel;
+
+                  for (var note in notes) {
+                    final label = controller.getTimeLabel(note.createdAt);
+                    if (label != lastLabel) {
+                      listItems.add(_sectionTitle(label));
+                      lastLabel = label;
+                    }
+                    listItems.add(_noteTile(note));
+                  }
+
+                  return ListView(
+                    children: listItems,
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _noteTile(NoteModel note) {
+    return Dismissible(
+      key: Key(note.id),
+      direction: DismissDirection.endToStart,
+      
+      onDismissed: (_) {
+         controller.deleteNote(note);
+      },
+
+      confirmDismiss: (direction) async {
+        return await showDialog(
+          context: Get.context!,
+          builder: (_) => AlertDialog(
+            title: const Text("Delete Note"),
+            content: const Text(
+              "Are you sure you want to delete this note?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () =>
+                    Navigator.pop(Get.context!, false),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pop(Get.context!, true),
+                child: const Text("Delete"),
+              ),
+            ],
+          ),
+        );
+      },
+
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+        ),
+        alignment: Alignment.centerRight,
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+        ),
+      ),
+
+      child: InkWell(
+        onTap: () {
+          controller.openEditNote(note);
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      note.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      note.description.isEmpty ? "No description" : note.description,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Text(
+                      DateFormat('hh:mm a').format(note.createdAt),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              if (note.imagePath != null && note.imagePath!.isNotEmpty)
+                ClipRRect(
+                  borderRadius:
+                  BorderRadius.circular(10),
+                  child: Image.file(
+                    File(note.imagePath!),
+                    height: 55,
+                    width: 55,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
